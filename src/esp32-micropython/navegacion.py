@@ -70,7 +70,7 @@ def desactivar(motivo="detenido_por_usuario"):
     _orden()
 
 
-def procesar_boton_start():
+def boton_start():
     nav = estado.estado["navegacion"]
     boton = estado.estado["entradas"]["boton_start"]
     presionado = bool(boton["valor"]) if boton["valido"] else False
@@ -103,10 +103,7 @@ def _actualizar_frescura(nav, sistema):
         ("ti", tof["izquierdo"], config.CICLOS_MAX_SIN_TOF),
         ("td", tof["derecho"], config.CICLOS_MAX_SIN_TOF),
     )
-    return {
-        nombre: _fuente_fresca(nav, nombre, muestra, limite)
-        for nombre, muestra, limite in fuentes
-    }
+    return {nombre: _fuente_fresca(nav, nombre, muestra, limite) for nombre, muestra, limite in fuentes}
 
 
 def _valor(muestra, fresca):
@@ -121,49 +118,30 @@ def _frente_critico(sf, tf, umbral_sonar, umbral_tof):
     )
 
 
-def _observar_frente(sistema, frescas):
+def observar_frente(sistema, frescas):
     sf_muestra = sistema["sonar"]["frontal"]
     tf_muestra = sistema["tof"]["frontal"]
     sf = _valor(sf_muestra, frescas["sf"])
     tf = _valor(tf_muestra, frescas["tf"])
     disponible = sf is not None or tf is not None
-    critico = _frente_critico(
-        sf,
-        tf,
-        config.SONAR_FRONTAL_CRITICO_CM,
-        config.TOF_FRONTAL_CRITICO_CM,
-    )
-    aproximacion = bool(
-        (sf is not None and sf <= config.SONAR_FRONTAL_ENTRAR_APROX_CM)
-        or (tf is not None and tf <= config.TOF_FRONTAL_ENTRAR_APROX_CM)
-    )
-    libre = bool(
-        disponible
-        and (sf is None or sf >= config.SONAR_FRONTAL_LIBRE_CM)
-        and (tf is None or tf >= config.TOF_FRONTAL_LIBRE_CM)
-    )
-    salir = bool(
-        disponible
-        and (sf is None or sf >= config.SONAR_FRONTAL_SALIR_APROX_CM)
-        and (tf is None or tf >= config.TOF_FRONTAL_SALIR_APROX_CM)
-    )
-    espacio = bool(
-        disponible
-        and (sf is None or sf >= config.DISTANCIA_FRONTAL_MIN_GIRO_CM)
-        and (tf is None or tf >= config.DISTANCIA_FRONTAL_MIN_GIRO_CM)
-    )
-    giro_fluido = bool(
-        espacio
-        and (sf is None or sf <= config.DISTANCIA_FRONTAL_INICIO_GIRO_FLUIDO_CM)
-        and (tf is None or tf <= config.DISTANCIA_FRONTAL_INICIO_GIRO_FLUIDO_CM)
-    )
+
+    critico = bool((sf is not None and sf <= config.SONAR_FRONTAL_ENTRAR_APROX_CM) or (tf is not None and tf <= config.TOF_FRONTAL_ENTRAR_APROX_CM))
+    
+    aproximacion = bool((sf is not None and sf <= config.SONAR_FRONTAL_ENTRAR_APROX_CM) or (tf is not None and tf <= config.TOF_FRONTAL_ENTRAR_APROX_CM))
+    libre = bool(disponible and (sf is None or sf >= config.SONAR_FRONTAL_LIBRE_CM) and (tf is None or tf >= config.TOF_FRONTAL_LIBRE_CM))
+    salir = bool(disponible and (sf is None or sf >= config.SONAR_FRONTAL_SALIR_APROX_CM) and (tf is None or tf >= config.TOF_FRONTAL_SALIR_APROX_CM))
+
+    espacio_pregiro = bool(disponible and (sf is None or sf >= config.DISTANCIA_FRONTAL_MIN_GIRO_CM) and (tf is None or tf >= config.DISTANCIA_FRONTAL_MIN_GIRO_CM))
+
+    giro_fluido = bool(espacio_pregiro and (sf is None or sf <= config.DISTANCIA_FRONTAL_INICIO_GIRO_FLUIDO_CM) and (tf is None or tf <= config.DISTANCIA_FRONTAL_INICIO_GIRO_FLUIDO_CM))
+
     return {
         "disponible": disponible,
         "critico": critico,
         "aproximacion": aproximacion,
         "libre": libre,
         "salir": salir,
-        "espacio_giro": espacio,
+        "espacio_giro": espacio_pregiro,
         "giro_fluido": giro_fluido,
         "seq": (
             sf_muestra["seq"] if sf is not None else 0,
@@ -484,7 +462,7 @@ def _confirmar_fin_giro(nav, frente):
 def actualizar():
     sistema = estado.estado
     nav = sistema["navegacion"]
-    procesar_boton_start()
+    boton_start()
 
     if nav["modo"] != "automatico":
         return
@@ -494,7 +472,7 @@ def actualizar():
         return
 
     frescas = _actualizar_frescura(nav, sistema)
-    frente = _observar_frente(sistema, frescas)
+    frente = observar_frente(sistema, frescas)
     if nav["maniobra"] == FALLO:
         _actualizar_fallo(nav, frescas, frente)
         return

@@ -160,8 +160,8 @@ class MotorPuenteH:
     def _limitar_velocidad(self, velocidad):
         if velocidad < 0:
             return 0
-        if velocidad > 1023:
-            return 1023
+        if velocidad > 800:
+            return 800
         return int(velocidad)
 
     def _aplicar_velocidad(self, velocidad):

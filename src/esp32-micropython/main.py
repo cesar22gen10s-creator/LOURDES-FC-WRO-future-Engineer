@@ -98,34 +98,10 @@ async def debug():
         ble_debug.publicar(linea)
         await uasyncio.sleep_ms(config.PERIODO_DEBUG_MS)
 
-def _cambiar_modo_si_corresponde(cuadrado_anterior):
-    muestra = sistema["entradas"]["ps4"]
-    paquete = muestra.get("valor") if muestra.get("valido") else None
-    cuadrado = bool(isinstance(paquete, dict) and paquete.get("conectado") and ps4_uart.boton_activo(paquete, ps4_uart.LectorPS4UART.BTN_CUADRADO))
-    if cuadrado and not cuadrado_anterior:
-        nav = sistema["navegacion"]
-        nuevo = "manual" if nav["modo"] == "automatico" else "automatico"
-        navegacion.desactivar("cambio_modo_" + nuevo)
-        nav["modo"] = nuevo
-    return cuadrado
-
 async def ejecutar_control():
-    cuadrado_anterior = False
     while True:
-        cuadrado_anterior = _cambiar_modo_si_corresponde(
-            cuadrado_anterior
-        )
-        nav = sistema["navegacion"]
-        if nav["modo"] == "manual":
-            navegacion.procesar_boton_start()
-            if nav["activo"]:
-                ps4_uart.actualizar_manual(sistema)
-            else:
-                sistema["motor"]["velocidad"] = 0
-                sistema["motor"]["direccion"] = 0
-                sistema["motor"]["freno"] = False
-                sistema["servo"]["comando"] = 0.0
-        else:
+        ps4_uart.actualizar_manual(sistema)
+        if sistema["navegacion"]["modo"] != "manual":
             navegacion.actualizar()
         navegacion.aplicar_proteccion_frontal()
         await uasyncio.sleep_ms(config.PERIODO_NAVEGACION_MS)

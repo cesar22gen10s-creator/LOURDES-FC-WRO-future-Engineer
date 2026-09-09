@@ -1,4 +1,6 @@
+import ble_debug
 import config
+import navegacion
 import utilidades
 
 
@@ -124,10 +126,48 @@ def calcular_orden_manual(muestra_ps4):
     return velocidad, direccion, comando_servo, motivo
 
 
+def cuadrado_cambiar_modo(sistema):
+    muestra = sistema["entradas"]["ps4"]
+    paquete = muestra.get("valor") if muestra.get("valido") else None
+    cuadrado = bool(isinstance(paquete, dict) and paquete.get("conectado") and boton_activo(paquete, LectorPS4UART.BTN_CUADRADO))
+    nav = sistema["navegacion"]
+    if cuadrado and not nav.get("cuadrado_anterior", False):
+        nuevo = "manual" if nav["modo"] == "automatico" else "automatico"
+        navegacion.desactivar("cambio_modo_" + nuevo)
+        nav["modo"] = nuevo
+    nav["cuadrado_anterior"] = cuadrado
+
+def equis_activar(sistema):
+    muestra = sistema["entradas"]["ps4"]
+    paquete = muestra.get("valor") if muestra.get("valido") else None
+    equis = bool(isinstance(paquete, dict) and paquete.get("conectado") and boton_activo(paquete, LectorPS4UART.BTN_X))
+    nav = sistema["navegacion"]
+    if equis and not nav.get("equis_anterior", False):
+        navegacion.desactivar() if nav["activo"] else navegacion.activar()
+    nav["equis_anterior"] = equis 
+
+def circulo_ble(sistema):
+    muestra = sistema["entradas"]["ps4"]
+    paquete = muestra.get("valor") if muestra.get("valido") else None
+    circulo = bool(isinstance(paquete, dict) and paquete.get("conectado") and boton_activo(paquete, LectorPS4UART.BTN_CIRCULO))
+    nav = sistema["navegacion"]
+    if circulo and not nav.get("circulo_anterior", False):
+        ble_debug.alternar_actualizacion()
+    nav["circulo_anterior"] = circulo
+
+
 def actualizar_manual(sistema):
+    cuadrado_cambiar_modo(sistema)
+    equis_activar(sistema)
+    circulo_ble(sistema)
+    if sistema["navegacion"]["modo"] != "manual":
+        return
+    navegacion.boton_start()
     velocidad, direccion, comando, motivo = calcular_orden_manual(
         sistema["entradas"]["ps4"]
     )
+    if not sistema["navegacion"]["activo"]:
+        velocidad, direccion, comando = 0, 0, 0.0
     sistema["motor"]["velocidad"] = velocidad
     sistema["motor"]["direccion"] = direccion
     sistema["motor"]["freno"] = False

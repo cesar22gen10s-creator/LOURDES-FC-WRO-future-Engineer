@@ -14,3 +14,6 @@
 - Formato por defecto: resultado primero, de manera concisa y directamente utilizable.
 - En resumen: ejecutar la instruccion dada con la minima intervencion adicional necesaria.
 - Hacer codigo reutilizable, no mezclar responsabilidades multiples en una funcion sino separar para reusar.
+
+python -m mpremote connect COM5 cp -r RUTA 
+python -m mpremote connect COM5 run main.py
